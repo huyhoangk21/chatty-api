@@ -3,6 +3,7 @@ const {
   UserInputError,
   withFilter,
 } = require('apollo-server');
+const { Op } = require('sequelize');
 const { Message, User } = require('../models');
 const { sendMessage } = require('../validators/message');
 
@@ -42,4 +43,26 @@ module.exports = {
       return false;
     }
   ),
+  getAllMessages: async (_, { otherUser }, { user }) => {
+    if (!user) throw new AuthenticationError('Unauthenticated');
+    const thisUser = await User.findOne({ where: { username: user.username } });
+    const username2 = otherUser;
+    const other = await User.findOne({ where: { username: username2 } });
+    if (!other) throw new UserInputError('User not found');
+    const { username } = user;
+    const usernames = [username2, username];
+    let messages = await Message.findAll({
+      where: { from: { [Op.in]: usernames }, to: { [Op.in]: usernames } },
+      order: [['createdAt', 'DESC']],
+    });
+    messages = messages.map(m => {
+      if (m.from === user.username) {
+        (m.from = thisUser), (m.to = other);
+      } else {
+        (m.from = other), (m.to = thisUser);
+      }
+      return m;
+    });
+    return messages;
+  },
 };

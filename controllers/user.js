@@ -1,7 +1,8 @@
-const { UserInputError } = require('apollo-server');
-const { User } = require('../models');
+const { UserInputError, AuthenticationError } = require('apollo-server');
+const { User, Message } = require('../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { Op } = require('sequelize');
 const { register, login } = require('../validators/user');
 const { JWT_SECRET } = require('../config/config.json');
 
@@ -45,5 +46,31 @@ module.exports = {
     password = await bcrypt.hash(password, salt);
     await User.create({ username, email, password });
     return 'Registered successfully';
+  },
+  getFriends: async (_, __, { user }) => {
+    if (!user) throw new AuthenticationError('Unauthenticated');
+    const { username } = user;
+
+    let users = await User.findAll({
+      where: { username: { [Op.ne]: username } },
+    });
+
+    const messages = await Message.findAll({
+      where: { [Op.or]: [{ from: username }, { to: username }] },
+      order: [['createdAt', 'DESC']],
+    });
+
+    users = users.map(otherUser => {
+      const latestMessage = messages.find(
+        m => m.to === otherUser.username || m.from === otherUser.username
+      );
+      otherUser.latestMessage = latestMessage;
+      return otherUser;
+    });
+
+    const friends = users.filter(
+      otherUser => otherUser.latestMessage !== undefined
+    );
+    return friends;
   },
 };

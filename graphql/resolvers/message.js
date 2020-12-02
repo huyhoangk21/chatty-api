@@ -1,7 +1,9 @@
 const messageController = require('../../controllers/message');
 
 module.exports = {
-  Query: {},
+  Query: {
+    getAllMessages: messageController.getAllMessages,
+  },
   Mutation: {
     sendMessage: messageController.sendMessage,
   },
