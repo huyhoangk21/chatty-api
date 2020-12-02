@@ -1,11 +1,13 @@
 const User = require('./user');
+const Message = require('./message');
 
 module.exports = {
   Query: {
-    hello: () => 'Hello World',
     ...User.Query,
+    ...Message.Query,
   },
   Mutation: {
     ...User.Mutation,
+    ...Message.Mutation,
   },
 };

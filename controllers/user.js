@@ -14,7 +14,7 @@ module.exports = {
       },
       { abortEarly: false }
     );
-    if (error) throw new UserInputError('Fail to login', { errors: error });
+    if (error) throw new UserInputError('Fail to login', { error });
     const user = await User.findOne({ where: { username } });
     if (!user) throw new UserInputError('Incorrect username or password');
     const doMatch = await bcrypt.compare(password, user.password);
@@ -34,7 +34,7 @@ module.exports = {
       },
       { abortEarly: false }
     );
-    if (error) throw new UserInputError('Fail to register', { errors: error });
+    if (error) throw new UserInputError('Fail to register', { error });
 
     const userByUsername = await User.findOne({ where: { username } });
     const userByEmail = await User.findOne({ where: { email } });
