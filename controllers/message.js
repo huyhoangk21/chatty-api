@@ -1,9 +1,13 @@
-const { AuthenticationError, UserInputError } = require('apollo-server');
+const {
+  AuthenticationError,
+  UserInputError,
+  withFilter,
+} = require('apollo-server');
 const { Message, User } = require('../models');
 const { sendMessage } = require('../validators/message');
 
 module.exports = {
-  sendMessage: async (_, { to, content }, { req: { user } }) => {
+  sendMessage: async (_, { to, content }, { user, pubsub }) => {
     if (!user) throw new AuthenticationError('Unauthenticated');
     const { username: fromUsername } = user;
     const fromUser = await User.findOne({ where: { username: fromUsername } });
@@ -18,6 +22,24 @@ module.exports = {
       throw new UserInputError('Cannot send message to yourself');
 
     await Message.create({ from: fromUsername, to, content });
-    return { from: fromUser, to: toUser, content };
+
+    const message = { from: fromUser, to: toUser, content };
+    pubsub.publish('NEW_MESSAGE', { newMessage: message });
+    return message;
   },
+  newMessage: withFilter(
+    (_, __, { user, pubsub }) => {
+      if (!user) throw new AuthenticationError('Unauthenticated');
+      return pubsub.asyncIterator(['NEW_MESSAGE']);
+    },
+    ({ newMessage }, _, { user }) => {
+      if (
+        newMessage.from.username === user.username ||
+        newMessage.to.username === user.username
+      ) {
+        return true;
+      }
+      return false;
+    }
+  ),
 };

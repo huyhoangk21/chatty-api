@@ -10,4 +10,7 @@ module.exports = {
     ...User.Mutation,
     ...Message.Mutation,
   },
+  Subscription: {
+    ...Message.Subscription,
+  },
 };

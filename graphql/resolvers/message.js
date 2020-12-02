@@ -5,4 +5,9 @@ module.exports = {
   Mutation: {
     sendMessage: messageController.sendMessage,
   },
+  Subscription: {
+    newMessage: {
+      subscribe: messageController.newMessage,
+    },
+  },
 };
